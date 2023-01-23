@@ -63,15 +63,21 @@ nfcItemsWithAttentionCheckSorted = [
 
 
 prolific_ids_1 = (
-    pd.read_csv("dis_1.csv").rename(columns={"Participant id": "prolificid"}).prolificid
+    pd.read_csv("dis_60.csv")
+    .rename(columns={"Participant id": "prolificid"})
+    .prolificid
 )
 
 prolific_ids_2 = (
-    pd.read_csv("dis_2.csv").rename(columns={"Participant id": "prolificid"}).prolificid
+    pd.read_csv("dis_70.csv")
+    .rename(columns={"Participant id": "prolificid"})
+    .prolificid
 )
 
 prolific_ids_3 = (
-    pd.read_csv("dis_3.csv").rename(columns={"Participant id": "prolificid"}).prolificid
+    pd.read_csv("dis_98.csv")
+    .rename(columns={"Participant id": "prolificid"})
+    .prolificid
 )
 
 
@@ -96,46 +102,86 @@ prolific_ids = prolific_ids_concat.unique()
 df_dir = "./dataframes"
 
 
-welcome = pd.read_csv(f"{df_dir}/landed-instructions.log.csv")
+# welcome = pd.read_csv(f"{df_dir}/landed-instructions.log.csv")
 
 
-# When landing on the welcome screen twice with same prolificid
-# drop the second submission (doubled submission)
-welcome = welcome.sort_values("datetime")
+# # When landing on the welcome screen twice with same prolificid
+# # drop the second submission (doubled submission)
+# welcome = welcome.sort_values("datetime")
 
-welcome = welcome.loc[welcome.prolificid.str.len() == 24]
-welcome = welcome.drop_duplicates(subset=["prolificid"], keep="first")
-# welcome = welcome.drop_duplicates(subset=["userid", "prolificid"])
+# welcome = welcome.loc[welcome.prolificid.str.len() == 24]
+# welcome = welcome.drop_duplicates(subset=["prolificid"], keep="first")
+# # welcome = welcome.drop_duplicates(subset=["userid", "prolificid"])
 
 
-# %%
-iuipc = (
-    pd.read_csv("dataframes/final-answers-iuipc.log.csv")
-    .sort_values("datetime")
-    .drop_duplicates(subset=["userid"], keep="last")
-)
+# # %%
+# iuipc = (
+#     pd.read_csv("dataframes/final-answers-iuipc.log.csv")
+#     .sort_values("datetime")
+#     .drop_duplicates(subset=["userid"], keep="last")
+# )
 
-user_ids_from_iuipc = iuipc.userid
+# user_ids_from_iuipc = iuipc.userid
 
-users = welcome.loc[welcome.userid.isin(user_ids_from_iuipc)]
-user = users.sort_values("datetime")
+# users = welcome.loc[welcome.userid.isin(user_ids_from_iuipc)]
+# user = users.sort_values("datetime")
 
-users = users.drop_duplicates(subset=["prolificid"])
+# users = users.drop_duplicates(subset=["prolificid"])
 
-users = users.loc[:, ["userid", "condition", "prolificid"]]
+# users = users.loc[:, ["userid", "condition", "prolificid"]]
 
 
 # %%
 
 wrongtrie = pd.read_csv("dataframes/wrongtrie.log.csv")
 
-# exclude = [
-#     "5cb167c332ca24001ae2fcbd",
-#     5e4d2880ad8aac000bfa57fe
+exclude = [
+    "2905f5f2-5b75-49dc-adf5-64990ebdbb71",
+    "52bd1719-f363-4f9c-98b6-c5c9b07e8b95",
+    "5c4a1012-75ef-4c31-ab92-9d179e6cbf7b",
+    "ab03fc57-72c3-4efd-ac5e-219265800789",
+    "ae783353-5fb9-4e5e-94e1-2ef93f5fd8d0",
+    "f89148b8-4bd0-41fc-9092-b8cf591841a9",
+    "fe8c3545-0b3a-4489-919e-fe41edc4afdb",
+    "c57accc4-2d94-4545-9167-baea3f50b58e",  # ac failed twice
+]
+
+# (wrongtrie.groupby("userid").sum().noOfTrie >= 2)
+
+# %% Attention checks ausschließen
+
+
+s1 = pd.read_csv("dataframes/freetext-s1.log.csv")
+
+s1 = s1.loc[s1.prolificid.isin(prolific_ids)]
+
+s1 = s1.sort_values(by="datetime")
+
+s1 = s1.drop_duplicates(subset=["userid"], keep="last")
+s1 = s1.drop_duplicates(subset=["prolificid"], keep="first")
+
+s1 = s1.loc[~s1.userid.isin(exclude)]
+
+# s1 = s1.loc[~s1.userid.isin(exclude)]
+
+users = s1
+
+# %%
+
+# ac_nfc = nfc_df.nfcAnswersSorted.apply(lambda x: int(x[0])).value_counts()
+# ac_iuipc = iuipc_df.iuipcAnswersSorted.apply(lambda x: int(x[1])).value_counts()
+
+# user_id_failed_iuipc = iuipc_df.userid.loc[
+#     iuipc_df.iuipcAnswersSorted.apply(lambda x: int(x[1])) != 5
+# ]
+
+# user_id_failed_nfc = nfc_df.userid.loc[
+#     nfc_df.nfcAnswersSorted.apply(lambda x: int(x[0])) != 3
 # ]
 
 
-# %% Attention checks ausschließen
+# %%
+
 
 # %%
 
@@ -189,8 +235,8 @@ ueq = (
     pd.read_csv("dataframes/final-answers-ueqs.log.csv")
     .sort_values("datetime")
     .drop_duplicates(subset=["userid"], keep="last")
-    .rename(columns={"answers": "ueqAnswers"})
-    .loc[:, ["userid", "ueqAnswers"]]
+    .rename(columns={"answers": "ueqAnswers", "shuffledquestions": "ueqQuestions"})
+    .loc[:, ["userid", "ueqAnswers", "ueqQuestions"]]
 )
 
 
@@ -251,15 +297,15 @@ iuipc_df = get_sorted_answers(iuipc, "iuipc")
 nfc_df = get_sorted_answers(nfc, "nfc")
 # ueq = get_sorted_answers(ueq, "ueq")
 
+# (nfc_df.nfcAnswersSorted.apply(lambda x: int(x.pop(0)))).value_counts()
+
+# %%
 
 result_df = (
     iuipc_df.merge(nfc_df, on=["userid", "condition"]).merge(ueq).merge(numeracy)
 )
 
 # result_df = result_df.loc[result_df.userid.isin(user.userid)]
-
-
-print(result_df.condition.value_counts())
 
 
 def calc_iuipc(answer_list):
@@ -328,6 +374,8 @@ result_df["numeracy"] = result_df.numeracyAnswers.apply(lambda x: calc_numeracy(
 
 # %%
 
+result_df = result_df.loc[result_df.userid.isin(s1.userid)]
+print(result_df.condition.value_counts())
 result_df.to_csv("dis_results.csv")
 
 # %%
