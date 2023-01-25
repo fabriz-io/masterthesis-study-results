@@ -5,7 +5,7 @@ import json
 import os
 import numpy as np
 
-number = "004"
+number = "006"
 
 logs_dir_path = f"./log_folder/{number}"
 log_files_paths = os.listdir(logs_dir_path)

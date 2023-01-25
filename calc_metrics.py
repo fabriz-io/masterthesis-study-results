@@ -38,6 +38,10 @@ nfcItemsWithAttentionCheckSorted = [
     "Ich würde lieber etwas tun, das wenig Denken erfordert, als etwas, das mit Sicherheit meine Denkfähigkeit herausfordert.",
 ]
 
+
+ueq_pragmatic = ["behindernd", "kompliziert", "ineffizient", "verwirrend"]
+ueq_hedonic = ["langweilig", "uninteressant", "konventionell", "herkömmlich"]
+
 # 0 (R)    "Denken entspricht nicht dem, was ich unter Spaß verstehe.",
 #          "Die Aufgabe, neue Lösungen für Probleme zu finden, macht mir wirklich Spaß.",
 # 2 (R)    "Ich trage nicht gerne die Verantwortung für eine Situation, die sehr viel Denken erfordert.",
@@ -80,17 +84,26 @@ prolific_ids_3 = (
     .prolificid
 )
 
+prolific_ids_4 = (
+    pd.read_csv("dis_100.csv")
+    .rename(columns={"Participant id": "prolificid"})
+    .prolificid
+)
+
 
 print(prolific_ids_1.isin(prolific_ids_2).sum())
 print(prolific_ids_1.isin(prolific_ids_3).sum())
+print(prolific_ids_1.isin(prolific_ids_4).sum())
 print(prolific_ids_2.isin(prolific_ids_1).sum())
 print(prolific_ids_2.isin(prolific_ids_3).sum())
+print(prolific_ids_2.isin(prolific_ids_4).sum())
 print(prolific_ids_3.isin(prolific_ids_1).sum())
 print(prolific_ids_3.isin(prolific_ids_2).sum())
+print(prolific_ids_3.isin(prolific_ids_4).sum())
 # prolific_ids_ = prolific_ids_80.loc[~prolific_ids_80.isin(prolific_ids_70)]
 
 prolific_ids_concat = pd.concat(
-    [prolific_ids_1, prolific_ids_2, prolific_ids_3], axis=0
+    [prolific_ids_1, prolific_ids_2, prolific_ids_3, prolific_ids_4], axis=0
 )
 # prolific_ids = prolific_ids.loc[:, ["Participant id"]]
 
@@ -133,18 +146,30 @@ df_dir = "./dataframes"
 
 # %%
 
-wrongtrie = pd.read_csv("dataframes/wrongtrie.log.csv")
+wrongtrie = (
+    pd.read_csv("dataframes/wrongtrie.log.csv").groupby("userid").sum().reset_index()
+)
 
-exclude = [
-    "2905f5f2-5b75-49dc-adf5-64990ebdbb71",
-    "52bd1719-f363-4f9c-98b6-c5c9b07e8b95",
-    "5c4a1012-75ef-4c31-ab92-9d179e6cbf7b",
-    "ab03fc57-72c3-4efd-ac5e-219265800789",
-    "ae783353-5fb9-4e5e-94e1-2ef93f5fd8d0",
-    "f89148b8-4bd0-41fc-9092-b8cf591841a9",
-    "fe8c3545-0b3a-4489-919e-fe41edc4afdb",
-    "c57accc4-2d94-4545-9167-baea3f50b58e",  # ac failed twice
-]
+
+ac_failed = pd.read_csv("dataframes/warning-ac-failed.log.csv")
+
+# exclude = [
+#     "2905f5f2-5b75-49dc-adf5-64990ebdbb71",
+#     "52bd1719-f363-4f9c-98b6-c5c9b07e8b95",
+#     "5c4a1012-75ef-4c31-ab92-9d179e6cbf7b",
+#     "ab03fc57-72c3-4efd-ac5e-219265800789",
+#     "ae783353-5fb9-4e5e-94e1-2ef93f5fd8d0",
+#     "f89148b8-4bd0-41fc-9092-b8cf591841a9",
+#     "fe8c3545-0b3a-4489-919e-fe41edc4afdb",
+#     "c57accc4-2d94-4545-9167-baea3f50b58e",  # ac failed twice
+# ]
+
+exclude = pd.concat(
+    [
+        wrongtrie.userid.loc[wrongtrie.noOfTrie >= 2],
+        ac_failed.userid.loc[ac_failed.prolificid.str.len() == 24],
+    ]
+)
 
 # (wrongtrie.groupby("userid").sum().noOfTrie >= 2)
 
@@ -153,12 +178,15 @@ exclude = [
 
 s1 = pd.read_csv("dataframes/freetext-s1.log.csv")
 
+
 s1 = s1.loc[s1.prolificid.isin(prolific_ids)]
 
 s1 = s1.sort_values(by="datetime")
 
 s1 = s1.drop_duplicates(subset=["userid"], keep="last")
 s1 = s1.drop_duplicates(subset=["prolificid"], keep="first")
+
+excluded_users = s1.loc[s1.userid.isin(exclude)]
 
 s1 = s1.loc[~s1.userid.isin(exclude)]
 
@@ -219,10 +247,10 @@ iuipc = (
     .drop_duplicates(subset=["userid"], keep="last")
 )
 
-iuipc = iuipc.loc[
-    iuipc.userid.isin(users.userid),
-    ["userid", "condition", "answers", "shuffledquestions"],
-]
+# iuipc = iuipc.loc[
+#     iuipc.userid.isin(users.userid),
+#     ["userid", "condition", "answers", "shuffledquestions"],
+# ]
 # .rename(columns={"answers": "iuipcAnswers", "shuffledquestions": "iuipcQuestions"})
 
 nfc = (
@@ -235,8 +263,8 @@ ueq = (
     pd.read_csv("dataframes/final-answers-ueqs.log.csv")
     .sort_values("datetime")
     .drop_duplicates(subset=["userid"], keep="last")
-    .rename(columns={"answers": "ueqAnswers", "shuffledquestions": "ueqQuestions"})
-    .loc[:, ["userid", "ueqAnswers", "ueqQuestions"]]
+    # .rename(columns={"answers": "ueqAnswers", "shuffledquestions": "ueqQuestions"})
+    # .loc[:, ["userid", "ueqAnswers", "ueqQuestions"]]
 )
 
 
@@ -249,13 +277,16 @@ numeracy = (
 )
 
 
-ueq.ueqAnswers = ueq.ueqAnswers.apply(lambda x: [int(x) for x in ast.literal_eval(x)])
-# numeracy.numeracyAnswers = numeracy.numeracyAnswers.apply(
-#     lambda x: [int(x) for x in ast.literal_eval(x)]
+# ueq.shuffledquestions = ueq.shuffledquestions.apply(
+#     lambda x: [x[0] for x in ast.literal_eval(x)]
 # )
 
 
+# %%
+
+
 def get_sorted_answers(df, metricName):
+    question_list = []
     answer_list = []
     userid_list = []
     condition_list = []
@@ -264,7 +295,10 @@ def get_sorted_answers(df, metricName):
         df.userid, df.condition, df.shuffledquestions, df.answers
     ):
 
-        questionList = ast.literal_eval(questionListString)
+        if metricName == "ueq":
+            questionList = [x[0] for x in ast.literal_eval(questionListString)]
+        else:
+            questionList = ast.literal_eval(questionListString)
         answerList = ast.literal_eval(answerListString)
 
         if not isinstance(questionList, list) or not isinstance(answerList, list):
@@ -278,9 +312,10 @@ def get_sorted_answers(df, metricName):
             sortedIndex = np.argsort(questionList)
             # print(sortedIndex)
             answers = np.array(answerList)[sortedIndex]
+            questions = np.array(questionList)[sortedIndex]
 
             answer_list.append(answers.tolist())
-            # print(answers)
+            question_list.append(questions.tolist())
             userid_list.append(userid)
             condition_list.append(condition)
 
@@ -289,14 +324,15 @@ def get_sorted_answers(df, metricName):
             "userid": userid_list,
             "condition": condition_list,
             f"{metricName}AnswersSorted": answer_list,
+            f"{metricName}QuestionsSorted": question_list,
         }
     )
 
 
 iuipc_df = get_sorted_answers(iuipc, "iuipc")
 nfc_df = get_sorted_answers(nfc, "nfc")
-# ueq = get_sorted_answers(ueq, "ueq")
-
+ueq = get_sorted_answers(ueq, "ueq")
+ueq.ueqAnswersSorted = ueq.ueqAnswersSorted.apply(lambda x: [int(a) for a in x])
 # (nfc_df.nfcAnswersSorted.apply(lambda x: int(x.pop(0)))).value_counts()
 
 # %%
@@ -306,6 +342,8 @@ result_df = (
 )
 
 # result_df = result_df.loc[result_df.userid.isin(user.userid)]
+
+#%%
 
 
 def calc_iuipc(answer_list):
@@ -367,10 +405,70 @@ def calc_numeracy(answer_list):
     raise ValueError
 
 
+def calc_ueq_pragmatic(answer_list):
+    # print(answer_list)
+    boolean_indexer_sorted = [True, False, True, True, False, False, False, True]
+
+    pragmatic_score = np.mean(np.array(answer_list)[boolean_indexer_sorted])
+
+    return pragmatic_score
+
+
+def calc_ueq_hedonic(answer_list):
+    # print(answer_list)
+    boolean_indexer_sorted = [False, True, False, False, True, True, True, False]
+
+    hedonic_score = np.mean(np.array(answer_list)[boolean_indexer_sorted])
+
+    return hedonic_score
+
+
+def calc_ueq_total(answer_list):
+    # print(answer_list)
+    ueq_score = np.mean(np.array(answer_list))
+    return ueq_score
+
+
+# [False, True, False, False, True, True, True, False]
+
+
 result_df["iuipc"] = result_df.iuipcAnswersSorted.apply(lambda x: calc_iuipc(x))
 result_df["nfc"] = result_df.nfcAnswersSorted.apply(lambda x: calc_nfc(x))
 result_df["numeracy"] = result_df.numeracyAnswers.apply(lambda x: calc_numeracy(x))
+result_df["ueq_pragmatic"] = result_df.ueqAnswersSorted.apply(
+    lambda x: calc_ueq_pragmatic(x)
+)
+result_df["ueq_hedonic"] = result_df.ueqAnswersSorted.apply(
+    lambda x: calc_ueq_hedonic(x)
+)
+result_df["ueq_total"] = result_df.ueqAnswersSorted.apply(lambda x: calc_ueq_total(x))
 
+
+# %%
+
+import pandas as pd
+
+# epsilon_c1 = pd.read_csv("dataframes/finalstate-c1.log.csv")
+# epsilon_c2 = pd.read_csv("dataframes/finalstate-c2.log.csv")
+# epsilon_c3 = pd.read_csv("dataframes/finalstate-c3.log.csv")
+
+epsilon = pd.concat(
+    [
+        pd.read_csv("dataframes/finalstate-c1.log.csv"),
+        pd.read_csv("dataframes/finalstate-c2.log.csv"),
+        pd.read_csv("dataframes/finalstate-c3.log.csv"),
+    ]
+)
+
+# %%
+
+epsilon["epsilon_mean"] = epsilon.finalstate.apply(
+    lambda x: np.mean(ast.literal_eval(x))
+)
+
+epsilon = epsilon.sort_values("datetime").drop_duplicates("userid", keep="last")
+
+result_df = result_df.merge(epsilon.loc[:, ["userid", "epsilon_mean"]])
 
 # %%
 
