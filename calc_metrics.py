@@ -90,12 +90,21 @@ prolific_ids_4 = (
     .prolificid
 )
 
+print(prolific_ids_1.isin(prolific_ids_3).sum())
+print(prolific_ids_2.isin(prolific_ids_3).sum())
+
+
+participated_double = pd.concat(
+    [
+        prolific_ids_1.loc[prolific_ids_1.isin(prolific_ids_3)],
+        prolific_ids_2.loc[prolific_ids_2.isin(prolific_ids_3)],
+    ]
+)
+
 
 print(prolific_ids_1.isin(prolific_ids_2).sum())
-print(prolific_ids_1.isin(prolific_ids_3).sum())
 print(prolific_ids_1.isin(prolific_ids_4).sum())
 print(prolific_ids_2.isin(prolific_ids_1).sum())
-print(prolific_ids_2.isin(prolific_ids_3).sum())
 print(prolific_ids_2.isin(prolific_ids_4).sum())
 print(prolific_ids_3.isin(prolific_ids_1).sum())
 print(prolific_ids_3.isin(prolific_ids_2).sum())
@@ -184,6 +193,12 @@ s1 = s1.loc[s1.prolificid.isin(prolific_ids)]
 s1 = s1.sort_values(by="datetime")
 
 s1 = s1.drop_duplicates(subset=["userid"], keep="last")
+
+accept_duplicated = s1.loc[s1.prolificid.duplicated()]
+accept_duplicated["date"] = pd.to_datetime(s1["datetime"])
+
+# %%
+
 s1 = s1.drop_duplicates(subset=["prolificid"], keep="first")
 
 excluded_users = s1.loc[s1.userid.isin(exclude)]
@@ -194,7 +209,7 @@ s1 = s1.loc[~s1.userid.isin(exclude)]
 
 users = s1
 
-# %%
+# %%a
 
 # ac_nfc = nfc_df.nfcAnswersSorted.apply(lambda x: int(x[0])).value_counts()
 # ac_iuipc = iuipc_df.iuipcAnswersSorted.apply(lambda x: int(x[1])).value_counts()
@@ -465,15 +480,77 @@ epsilon = pd.concat(
 epsilon["epsilon_mean"] = epsilon.finalstate.apply(
     lambda x: np.mean(ast.literal_eval(x))
 )
+epsilon["epsilon_1"] = epsilon.finalstate.apply(lambda x: ast.literal_eval(x)[0])
+epsilon["epsilon_2"] = epsilon.finalstate.apply(lambda x: ast.literal_eval(x)[1])
+epsilon["epsilon_3"] = epsilon.finalstate.apply(lambda x: ast.literal_eval(x)[2])
+epsilon["epsilon_4"] = epsilon.finalstate.apply(lambda x: ast.literal_eval(x)[3])
+epsilon["epsilon_5"] = epsilon.finalstate.apply(lambda x: ast.literal_eval(x)[4])
+
 
 epsilon = epsilon.sort_values("datetime").drop_duplicates("userid", keep="last")
 
-result_df = result_df.merge(epsilon.loc[:, ["userid", "epsilon_mean"]])
+result_df = result_df.merge(
+    epsilon.loc[
+        :,
+        [
+            "userid",
+            "epsilon_mean",
+            "epsilon_1",
+            "epsilon_2",
+            "epsilon_3",
+            "epsilon_4",
+            "epsilon_5",
+        ],
+    ]
+)
 
 # %%
 
 result_df = result_df.loc[result_df.userid.isin(s1.userid)]
 print(result_df.condition.value_counts())
 result_df.to_csv("dis_results.csv")
+
+# Save accepted userids
+
+result_df.userid.to_csv("accepted_userids.csv", index=False)
+
+# %%
+
+dis_60 = pd.read_csv("dis_60.csv")
+dis_70 = pd.read_csv("dis_70.csv")
+dis_98 = pd.read_csv("dis_98.csv")
+dis_100 = pd.read_csv("dis_100.csv")
+dis_60["bulk"] = "60"
+dis_70["bulk"] = "70"
+dis_98["bulk"] = "98"
+dis_100["bulk"] = "100"
+
+dis_submissions = pd.concat([dis_60, dis_70, dis_98, dis_100])
+
+dis_submissions = dis_submissions.sort_values(by="Completed at")
+
+duplicated_submissions = dis_submissions.loc[
+    dis_submissions["Participant id"].duplicated(keep=False)
+]
+
+duplicated_submissions.sort_values(by="Completed at")
+
+# %%
+reject = duplicated_submissions.loc[
+    ~duplicated_submissions["Participant id"].isin(accept_duplicated.prolificid)
+]
+
+reject = reject.loc[reject["Participant id"].duplicated(keep="first")]
+
+
+exclude = dis_submissions.loc[
+    dis_submissions["Participant id"].isin(excluded_users.prolificid)
+]
+
+
+reject_ids = pd.concat([reject["Participant id"], exclude["Participant id"]])
+
+
+accept_dis_98 = dis_98.loc[~dis_98["Participant id"].isin(reject_ids)]
 
 # %%
