@@ -196,7 +196,7 @@ configs = [
     ["iuipc", "IUIPC"],
     ["ueq_pragmatic", "UEQ Pragmatic Dimension"],
     ["ueq_hedonic", "UEQ Hedonic Dimension"],
-    ["ueq_hedonic", "UEQ Hedonic Dimension"],
+    ["ueq_total", "UEQ Total Score"],
 ]
 
 for i, ax in enumerate(axes.flatten()[:-1]):

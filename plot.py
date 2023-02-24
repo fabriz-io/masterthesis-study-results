@@ -122,40 +122,70 @@ for df_1, df_2 in [[c1, c2], [c2, c3], [c1, c3]]:
 # %%
 
 
-def get_latex_table(df, condition, dependent_variable, interaction_term, label=None):
+def get_latex_table(
+    df, condition, dependent_variable, interaction_term=None, title=None, label=None
+):
     mapping = {
         "ueq_hedonic": "UEQ hedonic dimension",
         "ueq_pragmatic": "UEQ pragmatic dimension",
+        "ueq_total": "UEQ total score",
         "nfc": "NFC Score",
         "C(numeracy)": "Numeracy Score",
     }
 
     ols_output = sm.OLS.from_formula(
-        # formula=f"{dim} ~ condition*{interaction_term}",
-        # formula=f"{dim} ~ condition*nfc*C(numeracy) - nfc:C(numeracy) - condition:nfc:C(numeracy)",
-        formula=f"{dependent_variable} ~ condition*{interaction_term}",
+        # formula=f"{dependent_variable} ~ condition*{interaction_term}",
+        formula=f"{dependent_variable} ~ condition*nfc*C(numeracy) - nfc:C(numeracy) - condition:nfc:C(numeracy)",
+        # formula=f"{dependent_variable} ~ condition*{interaction_term}",
         data=df,
     ).fit()
 
     print(f"\\begin{{table}}[]")
     print("    \\centering")
-    print(ols_output.summary().tables[1].as_latex_tabular())
     print(
-        f"\\caption{{OLS Regression Results. Dependent variable: {mapping[dependent_variable]}. Interaction Term: {mapping[interaction_term]}.}}"
+        ols_output.summary()
+        .tables[1]
+        .as_latex_tabular()
+        .replace("condition[T.c2]", "Visual")
+        .replace("condition[T.c3]", "Bayesian")
+        .replace("C(numeracy)[T.2]", "LowNumeracy")
+        .replace("C(numeracy)[T.3]", "HighNumeracy")
+        .replace("C(numeracy)[T.4]", "HighestNumeracy")
+        .replace(":", "*")
+        .replace("nfc", "NFC")
     )
-    print(f"\\label{{tab:{dependent_variable}_{condition}_{interaction_term}}}")
+    print(
+        f"\\caption{{OLS Regression Results: {title}. Dependent variable: {mapping[dependent_variable]}.}}"
+    )
+    print(f"\\label{{tab:{dependent_variable}_{condition}}}")
 
     print(f"\\end{{table}}")
 
 
-get_latex_table(c1_c2, "visual", "ueq_hedonic", "nfc")
-get_latex_table(c1_c2, "visual", "ueq_pragmatic", "nfc")
-get_latex_table(c1_c2, "visual", "ueq_hedonic", "C(numeracy)")
-get_latex_table(c1_c2, "visual", "ueq_pragmatic", "C(numeracy)")
-get_latex_table(c2_c3, "bayesian", "ueq_hedonic", "nfc")
-get_latex_table(c2_c3, "bayesian", "ueq_pragmatic", "nfc")
-get_latex_table(c2_c3, "bayesian", "ueq_hedonic", "C(numeracy)")
-get_latex_table(c2_c3, "bayesian", "ueq_pragmatic", "C(numeracy)")
+get_latex_table(c1_c2, "visual", "ueq_hedonic", title="Condition Simple vs. Visual")
+get_latex_table(c1_c2, "visual", "ueq_pragmatic", title="Condition Simple vs. Visual")
+get_latex_table(c1_c2, "visual", "ueq_total", title="Condition Simple vs. Visual")
+
+
+get_latex_table(c2_c3, "bayesian", "ueq_hedonic", title="Condition Visual vs. Bayesian")
+get_latex_table(
+    c2_c3, "bayesian", "ueq_pragmatic", title="Condition Visual vs. Bayesian"
+)
+get_latex_table(c2_c3, "bayesian", "ueq_total", title="Condition Visual vs. Bayesian")
+
+get_latex_table(c1_c3, "bayesian", "ueq_hedonic", title="Condition Simple vs. Bayesian")
+get_latex_table(
+    c1_c3, "bayesian", "ueq_pragmatic", title="Condition Simple vs. Bayesian"
+)
+get_latex_table(c1_c3, "bayesian", "ueq_total", title="Condition Simple vs. Bayesian")
+
+# get_latex_table(c1_c2, "visual", "ueq_pragmatic", "nfc")
+# get_latex_table(c1_c2, "visual", "ueq_hedonic", "C(numeracy)")
+# get_latex_table(c1_c2, "visual", "ueq_pragmatic", "C(numeracy)")
+# get_latex_table(c2_c3, "bayesian", "ueq_hedonic", "nfc")
+# get_latex_table(c2_c3, "bayesian", "ueq_pragmatic", "nfc")
+# get_latex_table(c2_c3, "bayesian", "ueq_hedonic", "C(numeracy)")
+# get_latex_table(c2_c3, "bayesian", "ueq_pragmatic", "C(numeracy)")
 
 
 # %%
@@ -559,28 +589,22 @@ plt.show()
 
 # %% privacy_level ~ condition*iuipc
 
-print(
-    sm.OLS.from_formula(formula=f"epsilon_mean ~ condition*iuipc", data=c1)
-    .fit()
-    .summary()
-    .tables[1]
-    .as_latex_tabular()
-)
 
-print(
-    sm.OLS.from_formula(formula=f"epsilon_mean ~ condition*iuipc", data=c2)
-    .fit()
-    .summary()
-    .tables[1]
-    .as_latex_tabular()
-)
+for df, condition in zip([c1, c2, c3], ["Simple", "Visual", "Bayesian"]):
+    print(f"\\begin{{table}}[]")
+    print("    \\centering")
+    print(
+        sm.OLS.from_formula(formula=f"epsilon_mean ~ condition*iuipc", data=df)
+        .fit()
+        .summary()
+        .tables[1]
+        .as_latex_tabular()
+    )
+    print(
+        f"\\caption{{OLS Regression Results. Dependent variable: PrivacyLevel. Condition: {condition}}}"
+    )
+    print(f"\\label{{tab:privacy_level_{condition}_iuipc}}")
 
-print(
-    sm.OLS.from_formula(formula=f"epsilon_mean ~ condition*iuipc", data=c3)
-    .fit()
-    .summary()
-    .tables[1]
-    .as_latex_tabular()
-)
+    print(f"\\end{{table}}")
 
 # %%
