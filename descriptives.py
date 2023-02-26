@@ -8,16 +8,122 @@ import numpy as np
 from os import path
 from PIL import Image
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-
-result_df = pd.read_csv("dis_results.csv")
-accepted_userids = pd.read_csv("accepted_userids.csv")
-
 import nltk
 
 nltk.download("stopwords")
 from nltk.corpus import stopwords
 
 german_stop_words = stopwords.words("german")
+
+
+result_df = pd.read_csv("dis_results.csv")
+result_df = result_df.drop(columns=["Unnamed: 0"])
+accepted_userids = pd.read_csv("accepted_userids.csv")
+result_df = result_df.loc[result_df.userid.isin(accepted_userids.userid)]
+
+c1 = result_df.loc[result_df.condition == "c1", :]
+c2 = result_df.loc[result_df.condition == "c2", :]
+c3 = result_df.loc[result_df.condition == "c3", :]
+
+# %% Descriptive Tables
+
+
+def print_descriptives_table(
+    condition, columns=["nfc", "iuipc", "numeracy", "ueq_hedonic", "ueq_pragmatic"]
+):
+    mapping = {
+        "ueq_hedonic": "UEQ hedonic dimension",
+        "ueq_pragmatic": "UEQ pragmatic dimension",
+        "ueq_total": "UEQ total score",
+        "nfc": "NFC Score",
+        "iuipc": "PrivacyConcern",
+        "c1": "Simple",
+        "c2": "Visual",
+        "c3": "Bayesian",
+        "numeracy": "Numeracy",
+    }
+
+    desc_df = result_df.loc[result_df.condition == condition, columns]
+
+    print(f"\\begin{{table}}[]")
+    print("    \\centering")
+
+    print(desc_df.describe().to_latex())
+
+    print(
+        f"\\caption{{Descriptive for measures within condition{mapping[condition]}.}}"
+    )
+    print(f"\\label{{tab:descriptives_{condition}}}")
+
+    print(f"\\end{{table}}")
+
+
+print_descriptives_table("c1")
+print_descriptives_table("c2")
+print_descriptives_table("c3")
+
+print_descriptives_table(
+    "c1",
+    columns=[
+        "epsilon_1",
+        "epsilon_2",
+        "epsilon_3",
+        "epsilon_4",
+        "epsilon_5",
+    ],
+)
+print_descriptives_table(
+    "c2",
+    columns=[
+        "epsilon_1",
+        "epsilon_2",
+        "epsilon_3",
+        "epsilon_4",
+        "epsilon_5",
+    ],
+)
+print_descriptives_table(
+    "c3",
+    columns=[
+        "epsilon_1",
+        "epsilon_2",
+        "epsilon_3",
+        "epsilon_4",
+        "epsilon_5",
+    ],
+)
+
+print_descriptives_table(
+    "c1",
+    columns=[
+        "epsilon_1",
+        "epsilon_2",
+        "epsilon_3",
+        "epsilon_4",
+        "epsilon_5",
+    ],
+)
+print_descriptives_table(
+    "c2",
+    columns=[
+        "epsilon_1",
+        "epsilon_2",
+        "epsilon_3",
+        "epsilon_4",
+        "epsilon_5",
+    ],
+)
+print_descriptives_table(
+    "c3",
+    columns=[
+        "epsilon_1",
+        "epsilon_2",
+        "epsilon_3",
+        "epsilon_4",
+        "epsilon_5",
+    ],
+)
+
 
 # %% Time Taken for the survey
 

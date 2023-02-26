@@ -16,6 +16,7 @@ import statsmodels.api as sm
 # %%
 
 result_df = pd.read_csv("dis_results.csv")
+result_df = result_df.drop(columns=["Unnamed: 0"])
 # low_nfc = result_df.loc[result_df.nfc < 4.833333, :]
 c1 = result_df.loc[result_df.condition == "c1", :]
 c2 = result_df.loc[result_df.condition == "c2", :]
@@ -28,6 +29,8 @@ print(c3.describe())
 c1_c2 = result_df.loc[result_df.condition.isin(["c1", "c2"]), :]
 c2_c3 = result_df.loc[result_df.condition.isin(["c3", "c2"]), :]
 c1_c3 = result_df.loc[result_df.condition.isin(["c3", "c1"]), :]
+
+# %% Descriptive Tables
 
 
 # %%
@@ -84,20 +87,18 @@ plt.savefig(
 plt.show()
 
 
-# %%
-
-
 # %% t-Tests
 
 equal_var = False
 
 i = 1
 
-# for df_1, df_2 in [[c1, c2], [c2, c3]]:
-for df_1, df_2 in [[c1, c2], [c2, c3], [c1, c3]]:
+for df_1, df_2 in [[c1, c3], [c2, c3]]:
+    # for df_1, df_2 in [[c1, c2], [c2, c3], [c1, c3]]:
+    # for df_1, df_2 in [[c1, c2]]:
     print(f"\n____________________________________________")
-    print(f"H{i}")
-    for dim in ["ueq_hedonic", "ueq_pragmatic", "ueq_total"]:
+    # print(f"H{i}")
+    for dim in ["ueq_hedonic", "ueq_pragmatic"]:
 
         print(f"\nTest {dim}:")
 
@@ -113,7 +114,7 @@ for df_1, df_2 in [[c1, c2], [c2, c3], [c1, c3]]:
             mannwhitneyu(
                 df_1[dim],
                 df_2[dim],
-                alternative="less",
+                alternative="greater",
             )
         )
     i += 1
